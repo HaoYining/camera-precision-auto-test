@@ -1,0 +1,1 @@
+# camera-precision-auto-test
