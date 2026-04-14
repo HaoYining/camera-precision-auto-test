@@ -34,6 +34,9 @@ class AutomationController:
     30组数据采集流程。
     """
 
+    # 剪贴板操作超时时间（秒）
+    CLIPBOARD_TIMEOUT = 5
+
     def __init__(self, positions: dict, settings: dict):
         """
         初始化控制器。
@@ -41,13 +44,18 @@ class AutomationController:
         Args:
             positions: 校准的按钮/区域位置字典。
             settings: 测试参数配置字典。
+
+        Raises:
+            ValueError: 如果 base_path 未在配置中设置。
         """
         self.positions = positions
         self.settings = settings
 
-        self.base_path: str = settings.get(
-            "base_path", r"C:\Users\mech-mind\Desktop\振镜\8ms"
-        )
+        if "base_path" not in settings or not settings["base_path"]:
+            raise ValueError(
+                "base_path 未设置，请在 config/settings.json 中配置基础储存路径"
+            )
+        self.base_path: str = settings["base_path"]
         self.total_groups: int = settings.get("total_groups", 30)
         self.expected_frames: int = settings.get("expected_frames", 54)
         self.wait_after_trigger: float = settings.get("wait_after_trigger", 7)
@@ -195,7 +203,7 @@ class AutomationController:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-            process.wait(timeout=5)
+            process.wait(timeout=self.CLIPBOARD_TIMEOUT)
         except (FileNotFoundError, subprocess.TimeoutExpired):
             # 回退：尝试使用 pyperclip
             try:
