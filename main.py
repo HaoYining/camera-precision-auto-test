@@ -81,7 +81,7 @@ def main() -> None:
 
     print()
     print("╔══════════════════════════════════════════════════════════╗")
-    print("║       相机重复精度自动化测试工具 v1.0                    ║")
+    print("║       相机重复精度自动化测试工具 v1.0   create by 郝yining ║")
     print("║       Camera Precision Auto-Test                        ║")
     print("╚══════════════════════════════════════════════════════════╝")
     print()
@@ -124,6 +124,7 @@ def main() -> None:
     required_keys = [
         "start_record",
         "stop_record",
+        "error_close",
         "storage_path",
         "trigger_capture",
         "frame_count_region",
@@ -150,7 +151,10 @@ def main() -> None:
 
     # 运行自动化测试
     controller = AutomationController(positions, settings)
-    controller.run()
+    try:
+        controller.run()
+    except KeyboardInterrupt:
+        print("\n🛑 已收到中断请求，测试已停止。")
 
     print("\n程序结束。")
 
