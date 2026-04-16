@@ -58,8 +58,8 @@ pip install -r requirements.txt
 
 ### 2. 安装 Tesseract OCR
 
-1. 从 [Tesseract 官方仓库](https://github.com/UB-Mannheim/tesseract/wiki) 下载安装程序
-2. 安装到默认路径（`C:\Program Files\Tesseract-OCR\`）
+1. 从 [Tesseract 官方仓库](https://github.com/UB-Mannheim/tesseract/wiki) 下载安装程序，或者使用根目录下提供的安装包直接安装。
+2. 安装到默认路径（`C:\Program Files\Tesseract-OCR\`），如果安装过程中tessdata模板库无法安装，可以将本项目中tessdata文件夹覆盖至安装路径中的默认tessdata文件夹。
 3. 如果安装到其他路径，请修改 `config/settings.json` 中的 `tesseract_cmd` 字段
 
 ## 配置
