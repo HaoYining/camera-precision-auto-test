@@ -18,6 +18,7 @@ import shutil
 import time
 
 import pyautogui
+import keyboard
 
 from utils.screen_utils import capture_region, recognize_number
 
@@ -73,17 +74,19 @@ class AutomationController:
         print("=" * 60)
         print()
         print("⚠ 提示: 将鼠标移到屏幕左上角可紧急停止程序（PyAutoGUI FailSafe）")
+        print("⚠ 提示: 运行过程中按 Esc 可中断并退出程序")
         print()
 
         group = 1
         while group <= self.total_groups:
+            self._check_for_interrupt()
             success = self._run_single_group(group)
             if success:
                 print(f"\n{'─' * 40}")
                 group += 1
             else:
                 print(f"  ⟳ 第 {group} 组将重试...\n")
-                time.sleep(self.retry_wait)
+                self._sleep_with_interrupt(self.retry_wait)
 
         print()
         print("=" * 60)
@@ -106,16 +109,19 @@ class AutomationController:
 
         # 步骤1: 设置储存路径
         print("   [1/4] 设置储存路径...")
+        self._check_for_interrupt()
         self._set_storage_path(group_path)
-        time.sleep(self.wait_after_click)
+        self._sleep_with_interrupt(self.wait_after_click)
 
         # 步骤2: 点击开始录制
         print("   [2/4] 点击开始录制...")
+        self._check_for_interrupt()
         self._click_position("start_record")
-        time.sleep(self.wait_after_click)
+        self._sleep_with_interrupt(self.wait_after_click)
 
         # 步骤3: 点击触发采集
         print("   [3/4] 点击触发采集...")
+        self._check_for_interrupt()
         self._click_position("trigger_capture")
 
         # 步骤4: 等待录制完成
@@ -124,32 +130,33 @@ class AutomationController:
             end="",
             flush=True,
         )
-        time.sleep(self.wait_after_trigger)
+        self._sleep_with_interrupt(self.wait_after_trigger)
         print(" 完成")
 
-        # 检测是否有弹窗报错（通过简单的弹窗检测）
-        if self._check_error_popup():
-            print("   ⚠ 检测到弹窗报错！")
-            self._dismiss_popup()
-            self._cleanup_group_data(group_path)
-            return False
-
-        # 步骤5: 识别帧数
+        # 步骤5: 识别帧数（需在停止录制前读取，避免界面刷新导致识别不到）
         print("   识别录制帧数...", end=" ", flush=True)
         frame_count = self._read_frame_count()
         print(f"识别结果: {frame_count}")
 
-        # 步骤6: 验证帧数
-        if frame_count == self.expected_frames:
-            print(f"   ✅ 第 {group_number} 组合格！帧数 = {frame_count}")
-            return True
-        else:
-            print(
-                f"   ❌ 第 {group_number} 组不合格！"
-                f"帧数 = {frame_count}，期望 = {self.expected_frames}"
-            )
-            self._cleanup_group_data(group_path)
-            return False
+        try:
+            # 步骤6: 验证帧数
+            if frame_count == self.expected_frames:
+                print(f"   ✅ 第 {group_number} 组合格！帧数 = {frame_count}")
+                return True
+            else:
+                print(
+                    f"   ❌ 第 {group_number} 组不合格！"
+                    f"帧数 = {frame_count}，期望 = {self.expected_frames}"
+                )
+                self._dismiss_popup()
+                self._cleanup_group_data(group_path)
+                return False
+        finally:
+            # 无论本轮结果如何，都点击结束录制，确保每轮录制被正确关闭
+            print("   点击结束录制...")
+            self._check_for_interrupt()
+            self._click_position("stop_record")
+            self._sleep_with_interrupt(self.wait_after_click)
 
     def _click_position(self, key: str) -> None:
         """
@@ -234,33 +241,33 @@ class AutomationController:
         frame_count = recognize_number(image)
         return frame_count
 
-    def _check_error_popup(self) -> bool:
-        """
-        检测屏幕上是否出现了弹窗。
-
-        使用简单策略：尝试查找常见弹窗按钮（如"确定"、"OK"）。
-        如果识别到弹窗相关元素，则认为有报错弹窗。
-
-        Returns:
-            True 表示检测到弹窗，False 表示没有。
-        """
-        try:
-            # 尝试定位常见的弹窗确认按钮
-            ok_button = pyautogui.locateOnScreen(
-                self._get_resource_path("ok_button.png"),
-                confidence=0.8,
-            )
-            return ok_button is not None
-        except Exception:
-            # 如果图片模板不存在或匹配失败，默认没有弹窗
-            return False
-
     def _dismiss_popup(self) -> None:
-        """尝试关闭弹窗（按 Enter 或 Escape）。"""
-        pyautogui.press("enter")
-        time.sleep(0.3)
-        pyautogui.press("escape")
-        time.sleep(0.3)
+        """点击报错弹窗的 Close 按钮。"""
+        if "error_close" not in self.positions:
+            print("   ⚠ 未标定报错 Close 按钮，跳过点击。")
+            return
+        self._check_for_interrupt()
+        self._click_position("error_close")
+        self._sleep_with_interrupt(self.wait_after_click)
+
+    def _check_for_interrupt(self) -> None:
+        """检测 Esc 按键中断请求。"""
+        if keyboard.is_pressed("esc"):
+            print("\n🛑 检测到 Esc 中断，程序即将退出。")
+            raise KeyboardInterrupt
+
+    def _sleep_with_interrupt(self, duration: float, step: float = 0.1) -> None:
+        """
+        可响应 Esc 中断的 sleep。
+
+        Args:
+            duration: 总等待时长（秒）。
+            step: 每次检查中断的步长（秒）。
+        """
+        end_time = time.time() + max(0.0, duration)
+        while time.time() < end_time:
+            self._check_for_interrupt()
+            time.sleep(min(step, end_time - time.time()))
 
     def _cleanup_group_data(self, group_path: str) -> None:
         """
@@ -278,8 +285,3 @@ class AutomationController:
         else:
             print(f"   ℹ 路径不存在，无需清理: {group_path}")
 
-    @staticmethod
-    def _get_resource_path(filename: str) -> str:
-        """获取资源文件路径。"""
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        return os.path.join(base_dir, "resources", filename)

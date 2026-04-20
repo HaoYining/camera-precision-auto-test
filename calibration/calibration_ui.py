@@ -31,6 +31,7 @@ class CalibrationUI:
     CLICK_TARGETS = [
         ("start_record", "开始录制按钮"),
         ("stop_record", "结束录制按钮"),
+        ("error_close", "报错弹窗Close按钮"),
         ("storage_path", "储存路径输入框"),
         ("trigger_capture", "触发采集按钮"),
     ]

@@ -1,0 +1,28 @@
+{
+    "start_record": {
+        "x": 1595,
+        "y": 135
+    },
+    "stop_record": {
+        "x": 1491,
+        "y": 128
+    },
+    "error_close": {
+        "x": 1537,
+        "y": 803
+    },
+    "storage_path": {
+        "x": 2362,
+        "y": 1029
+    },
+    "trigger_capture": {
+        "x": 1155,
+        "y": 1342
+    },
+    "frame_count_region": {
+        "x": 2062,
+        "y": 724,
+        "width": 34,
+        "height": 22
+    }
+}

@@ -1,8 +1,8 @@
 {
-    "base_path": "C:\\Users\\<your-username>\\Desktop\\振镜\\8ms",
+    "base_path": "C:\\Users\\mech-mind\\Desktop\\JHC-new\\64ms",
     "total_groups": 30,
     "expected_frames": 54,
-    "wait_after_trigger": 7,
+    "wait_after_trigger": 5.5,
     "wait_after_click": 0.5,
     "retry_wait": 1.0,
     "ocr_language": "eng",
